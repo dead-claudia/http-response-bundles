@@ -152,6 +152,8 @@ Ultimately, in order to solve the problems of efficient delivery and offline acc
 
 While using something like HTTP/2-style streams could allow for stuff like pre-sizing image elements, this simply doesn't require it.
 
+A stream-based method would complement stuff like [WICG/proposals#216](https://github.com/WICG/proposals/issues/216) well. It's just unclear if that's motivating enough to justify the complexity.
+
 ### Why not [Web Bundles](https://wpack-wg.github.io/bundled-responses/draft-ietf-wpack-bundled-responses.html)?
 
 1. It's far from simple. It requires CBOR parsing. This can be parsed extremely quickly and it reuses most of the same parsing logic already present for HTTP/2.
