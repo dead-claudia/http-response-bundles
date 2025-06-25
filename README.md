@@ -1,6 +1,6 @@
 # HTTP response bundles
 
-The intuition is this: Embedding data is faster than not embedding it on first load, and reducing round trips frequently boosts performance, especially on connections with high bandwidth-delay products with lots of smaller resources.
+The intuition is this: Reducing round trips frequently boosts performance, especially on connections with high bandwidth-delay products with lots of smaller resources. Also, the Web needs an offline story that isn't just waving hands or "download this ZIP file".
 
 ## Scenario
 
