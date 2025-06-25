@@ -89,7 +89,7 @@ Servers can return a file of type `multipart/http-response-bundle` (`.htrb`). Th
 Structure:
 
 - 32-bit magic `\0htb`
-- 32-bit version ID, initially 0
+- LEB128 version ID, initially 0
 - LEB128 template count
 - Sequence of request/response template size infos:
     - LEB128 request header pattern length
@@ -97,7 +97,7 @@ Structure:
     - LEB128 body length
 - Sequence of request header pattern HPACKs
 - Sequence of response header HPACKs
-    - These should *not* include any `Content-Length`. That is implicit in the template size infos.
+    - These must *not* include any `Content-Length`. That is implicit in the template response size.
 - Sequence of response bodies
  
 The request header patterns would all share an HPACK decoder context, and the response headers would share another HPACK decoder context. (The parser could just reuse the context across both and just reset after the first.) The decoder follows a static maximum dictionary size of 4096 bytes.
