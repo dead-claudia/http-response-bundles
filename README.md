@@ -89,13 +89,18 @@ Servers can return a file of type `multipart/http-response-bundle` (`.htrb`). Th
 Structure:
 
 - 32-bit magic `\0htb`
-- LEB128 version ID, initially 0
-- LEB128 template count
+- 32-bit version ID, initially 0
+- 32-bit random XOR masking key, applied to everything after main document offset
+    - This is to prevent middleboxes from "sensing" this as an HTML response and mangling it.
+    - This is to prevent bad plugins from seeing a stray `%PDF` and mangling the bundel.
+- 16-bit unsigned template count
+- 16-bit unsigned main document offset (for bundling and page fetching)
 - Sequence of request/response template size infos:
-    - LEB128 request header pattern length
-    - LEB128 response header length
-    - LEB128 body length
+    - 16-bit unsigned request header pattern length
+    - 16-bit unsigned response header length
+    - 32-bit unsigned body length
 - Sequence of request header pattern HPACKs
+    - These must *not* include any `:scheme` or `:authority` pseudo-header.
 - Sequence of response header HPACKs
     - These must *not* include any `Content-Length`. That is implicit in the template response size.
 - Sequence of response bodies
@@ -110,9 +115,9 @@ The main document's response headers are mixed with the bundle's response header
 
 Individual files may be compressed using `Content-Encoding` in the response header frame as applicable.
 
-The first file whose request matches the browser's request is used as the main document. It's highly recommended to make this first, but this is not required. If the main document doesn't match any header, the browser proceeds as if it 404'd.
+The first file whose request pattern (between `:path`/`:pattern`, `:method`, and `Vary`'d headers) matches the browser's request is used as the main document. It's highly recommended to make this first, but this is not required. If the main document doesn't match any header, the browser proceeds as if it 404'd.
 
-Path patterns can be specified using the pseudo-header `:pattern` inside request headers. Multiple templates can be matched by simply repeating this pseudo-header.
+Path patterns can be specified using the pseudo-header `:pattern` inside request headers. Multiple templates can be matched by simply repeating this pseudo-header. The `:path` header must still be provided if a `:pattern` is provided, as it represents the canonical location. And likewise, the path must match at least one pattern if any are present.
 
 > SPAs can use this to perform dynamic matching for the main document.
 
@@ -146,3 +151,11 @@ Ultimately, in order to solve the problems of efficient delivery and offline acc
 ### Why make this just a sequence of request-response pairs? Why not do some form of stream-based method?
 
 While using something like HTTP/2-style streams could allow for stuff like pre-sizing image elements, this simply doesn't require it.
+
+### Why not [Web Bundles](https://wpack-wg.github.io/bundled-responses/draft-ietf-wpack-bundled-responses.html)?
+
+1. It's far from simple. It requires CBOR parsing. This can be parsed extremely quickly and it reuses most of the same parsing logic already present for HTTP/2.
+2. It relies on transport compression, which is completely the wrong thing to use for this. Instead, the proposed format here uses a compression algorithm specially optimized for HTTP header parsing.
+3. Manifests can just be discovered by looking for a `<link rel="manifest">` in the main HTML document. There's no direct equivalent for a "primary" URL, but manifests already carry that info, so it's pointless at best.
+4. It fails to account for bad proxies and plugins that just try to detect HTML/PDF/etc. files without actually parsing the file properly or even verifying the content type.
+5. As this is drastically simplified, there's no need to add yet another registry.
